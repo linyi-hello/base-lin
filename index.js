@@ -669,16 +669,13 @@ const Engine = (function () {
 			if (typeof DecompressionStream === 'undefined') {
 				loadPromise = Promise.reject(new Error('This browser is too old to load the compressed game engine.'));
 			} else {
-				// Download the compressed engine in parallel chunks. This is noticeably more
-				// resilient on mobile networks than one long GitHub Pages request.
 				const engineParts = [2000000, 2000000, 2000000, 2000000, 2000000, 150665];
 				loadPromise = Promise.all(engineParts.map(function (partSize, index) {
 					const suffix = String(index).padStart(2, '0');
 					return preloader.loadPromise(`engine-parts/${loadPath}.wasm.bin.part-${suffix}`, partSize, true)
 						.then(function (response) { return response.arrayBuffer(); });
 				})).then(function (parts) {
-					const compressed = new Blob(parts).stream();
-					const decompressed = compressed.pipeThrough(new DecompressionStream('gzip'));
+					const decompressed = new Blob(parts).stream().pipeThrough(new DecompressionStream('gzip'));
 					return new Response(decompressed, { headers: { 'content-type': 'application/wasm' } });
 				});
 			}
