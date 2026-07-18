@@ -675,7 +675,15 @@ const Engine = (function () {
 					return preloader.loadPromise(`engine-parts/${loadPath}.wasm.bin.part-${suffix}`, partSize, true)
 						.then(function (response) { return response.arrayBuffer(); });
 				})).then(function (parts) {
-					const decompressed = new Blob(parts).stream().pipeThrough(new DecompressionStream('gzip'));
+					const compressedSize = parts.reduce(function (total, part) { return total + part.byteLength; }, 0);
+					const compressedBytes = new Uint8Array(compressedSize);
+					let offset = 0;
+					parts.forEach(function (part) {
+						compressedBytes.set(new Uint8Array(part), offset);
+						offset += part.byteLength;
+					});
+					const compressedStream = new Response(compressedBytes).body;
+					const decompressed = compressedStream.pipeThrough(new DecompressionStream('gzip'));
 					return new Response(decompressed, { headers: { 'content-type': 'application/wasm' } });
 				});
 			}
