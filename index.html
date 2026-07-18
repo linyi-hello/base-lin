@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+		<title>剑环 · Sword Ring</title>
+		<style>
+*{box-sizing:border-box}html,body,#canvas{margin:0;padding:0;border:0;width:100%;height:100%}body{color:#fff;background:#03080d;overflow:hidden;touch-action:none}#canvas{display:block}#canvas:focus{outline:none}
+#status{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;visibility:hidden;background:radial-gradient(circle at 68% 46%,rgba(37,191,231,.09),transparent 32%),linear-gradient(145deg,#06111b,#03080d 58%,#07131c);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
+#status:before{content:"";position:absolute;inset:-30%;background:repeating-radial-gradient(circle at 68% 46%,transparent 0 83px,rgba(95,219,247,.035) 84px 85px);animation:breathe 6s ease-in-out infinite}.loader-shell{position:relative;width:min(82vw,720px);text-align:center}.brand-kicker{color:#69dff7;font-size:11px;letter-spacing:.42em;margin-bottom:22px;opacity:.78}.brand-title{margin:0;font-size:clamp(56px,8vw,96px);font-weight:300;letter-spacing:.22em;text-indent:.22em}.brand-subtitle{margin:15px 0 58px;color:#8fa5b2;font-size:14px;letter-spacing:.3em;text-indent:.3em}
+.sword-ring{position:relative;width:142px;height:142px;margin:0 auto 62px;animation:orbit 7s linear infinite}.sword-ring:before,.sword-ring:after{content:"";position:absolute;border-radius:50%;inset:18px;border:1px solid rgba(105,223,247,.24)}.sword-ring:after{inset:46px;background:#43d8f4;border:8px solid rgba(67,216,244,.12);box-shadow:0 0 35px rgba(67,216,244,.45)}.blade{position:absolute;left:68px;top:-2px;width:6px;height:34px;border-radius:6px 6px 2px 2px;background:linear-gradient(#f6fbff 0 66%,#f5ae39 67% 76%,#8dceec 77%);transform-origin:3px 73px;transform:rotate(calc(var(--i)*51.428deg))}
+.load-label{color:#b7c7cf;font-size:12px;letter-spacing:.2em;margin-bottom:17px}#status-progress{display:none;width:min(64vw,360px);height:2px;margin:0 auto;border:0;background:rgba(255,255,255,.1)}#status-progress::-webkit-progress-bar{background:rgba(255,255,255,.1)}#status-progress::-webkit-progress-value{background:linear-gradient(90deg,#34c5e5,#b8f6ff);box-shadow:0 0 14px #38d8f5}#status-notice{display:none;position:relative;max-width:560px;margin:42px auto 0;padding:22px 28px;color:#d8e4e9;line-height:1.75;font-size:14px;background:rgba(255,255,255,.055);border:1px solid rgba(124,218,237,.16);border-radius:16px}.loader-foot{margin-top:28px;color:#526873;font-size:10px;letter-spacing:.22em}@keyframes orbit{to{transform:rotate(360deg)}}@keyframes breathe{50%{opacity:.55;transform:scale(1.04)}}@media(prefers-reduced-motion:reduce){.sword-ring,#status:before{animation:none}}
+</style>
+		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
+<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
+
+	</head>
+	<body>
+		<canvas id="canvas">
+			Your browser does not support the canvas tag.
+		</canvas>
+
+		<noscript>
+			Your browser does not support JavaScript.
+		</noscript>
+
+		<div id="status"><div class="loader-shell">
+<div class="brand-kicker">SWORD RING</div><h1 class="brand-title">剑环</h1><p class="brand-subtitle">以剑为甲 · 以环为锋</p>
+<div class="sword-ring" aria-hidden="true"><span class="blade" style="--i:0"></span><span class="blade" style="--i:1"></span><span class="blade" style="--i:2"></span><span class="blade" style="--i:3"></span><span class="blade" style="--i:4"></span><span class="blade" style="--i:5"></span><span class="blade" style="--i:6"></span></div>
+<div class="load-label">正在唤醒剑阵</div><progress id="status-progress"></progress><div id="status-notice"></div><div class="loader-foot">一百零五秒 · 一局定锋芒</div>
+</div></div>
+
+		<script src="index.js"></script>
+		<script>
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":220500,"index.wasm":39509339},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_THREADS_ENABLED = false;
+const engine = new Engine(GODOT_CONFIG);
+
+(function () {
+	const statusOverlay = document.getElementById('status');
+	const statusProgress = document.getElementById('status-progress');
+	const statusNotice = document.getElementById('status-notice');
+
+	let initializing = true;
+	let statusMode = '';
+
+	function setStatusMode(mode) {
+		if (statusMode === mode || !initializing) {
+			return;
+		}
+		if (mode === 'hidden') {
+			statusOverlay.remove();
+			initializing = false;
+			return;
+		}
+		statusOverlay.style.visibility = 'visible';
+		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
+		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
+		statusMode = mode;
+	}
+
+	function setStatusNotice(text) {
+		while (statusNotice.lastChild) {
+			statusNotice.removeChild(statusNotice.lastChild);
+		}
+		const lines = text.split('\n');
+		lines.forEach((line) => {
+			statusNotice.appendChild(document.createTextNode(line));
+			statusNotice.appendChild(document.createElement('br'));
+		});
+	}
+
+	function displayFailureNotice(err) {
+		console.error(err);
+		if (err instanceof Error) {
+			setStatusNotice(err.message);
+		} else if (typeof err === 'string') {
+			setStatusNotice(err);
+		} else {
+			setStatusNotice('An unknown error occurred.');
+		}
+		setStatusMode('notice');
+		initializing = false;
+	}
+
+	if (location.protocol === 'file:') {
+		setStatusNotice('当前是本地文件模式，浏览器会阻止游戏引擎加载。\n请打开 http://localhost:3000/，或使用正式分享网址。');
+		setStatusMode('notice');
+		initializing = false;
+		return;
+	}
+
+	const missing = Engine.getMissingFeatures({
+		threads: GODOT_THREADS_ENABLED,
+	});
+
+	if (missing.length !== 0) {
+		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
+			let serviceWorkerRegistrationPromise;
+			try {
+				serviceWorkerRegistrationPromise = navigator.serviceWorker.getRegistration();
+			} catch (err) {
+				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
+			}
+			// There's a chance that installing the service worker would fix the issue
+			Promise.race([
+				serviceWorkerRegistrationPromise.then((registration) => {
+					if (registration != null) {
+						return Promise.reject(new Error('Service worker already exists.'));
+					}
+					return registration;
+				}).then(() => engine.installServiceWorker()),
+				// For some reason, `getRegistration()` can stall
+				new Promise((resolve) => {
+					setTimeout(() => resolve(), 2000);
+				}),
+			]).then(() => {
+				// Reload if there was no error.
+				window.location.reload();
+			}).catch((err) => {
+				console.error('Error while registering service worker:', err);
+			});
+		} else {
+			// Display the message as usual
+			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
+			displayFailureNotice(missingMsg + missing.join('\n'));
+		}
+	} else {
+		setStatusMode('progress');
+		engine.startGame({
+			'onProgress': function (current, total) {
+				if (current > 0 && total > 0) {
+					statusProgress.value = current;
+					statusProgress.max = total;
+				} else {
+					statusProgress.removeAttribute('value');
+					statusProgress.removeAttribute('max');
+				}
+			},
+		}).then(() => {
+			setStatusMode('hidden');
+		}, displayFailureNotice);
+	}
+}());
+		</script>
+	</body>
+</html>
+
