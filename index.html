@@ -6,7 +6,6 @@
 		<title>剑环 · Sword Ring</title>
 		<style>
 *{box-sizing:border-box}html,body,#canvas{margin:0;padding:0;border:0;width:100%;height:100%}body{color:#fff;background:#03080d;overflow:hidden;touch-action:none}#canvas{display:block}#canvas:focus{outline:none}
-#rotate-notice{display:none;position:fixed;z-index:20;inset:0;align-items:center;justify-content:center;text-align:center;background:radial-gradient(circle at 50% 38%,rgba(42,191,231,.18),transparent 28%),#050c14;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}.needs-rotation #rotate-notice{display:flex}.needs-rotation #canvas,.needs-rotation #status{visibility:hidden!important}.rotate-card{width:min(82vw,360px);padding:34px 26px;border:1px solid rgba(105,223,247,.38);border-radius:24px;background:rgba(10,27,39,.86);box-shadow:0 20px 60px rgba(0,0,0,.35)}.rotate-icon{width:74px;height:50px;margin:0 auto 24px;border:3px solid #72e1f7;border-radius:9px;transform:rotate(-90deg);box-shadow:0 0 24px rgba(61,212,244,.42)}.rotate-title{font-size:24px;letter-spacing:.1em}.rotate-copy{margin-top:14px;color:#94b5c1;font-size:14px;line-height:1.8}.rotate-action{display:block;width:100%;margin-top:24px;padding:13px 20px;border:1px solid #69dff7;border-radius:12px;color:#dffbff;background:rgba(42,191,231,.12);font-size:15px}
 #status{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;visibility:hidden;background:radial-gradient(circle at 68% 46%,rgba(37,191,231,.09),transparent 32%),linear-gradient(145deg,#06111b,#03080d 58%,#07131c);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
 #status:before{content:"";position:absolute;inset:-30%;background:repeating-radial-gradient(circle at 68% 46%,transparent 0 83px,rgba(95,219,247,.035) 84px 85px);animation:breathe 6s ease-in-out infinite}.loader-shell{position:relative;width:min(82vw,720px);text-align:center}.brand-kicker{color:#69dff7;font-size:11px;letter-spacing:.42em;margin-bottom:22px;opacity:.78}.brand-title{margin:0;font-size:clamp(56px,8vw,96px);font-weight:300;letter-spacing:.22em;text-indent:.22em}.brand-subtitle{margin:15px 0 58px;color:#8fa5b2;font-size:14px;letter-spacing:.3em;text-indent:.3em}
 .sword-ring{position:relative;width:142px;height:142px;margin:0 auto 62px;animation:orbit 7s linear infinite}.sword-ring:before,.sword-ring:after{content:"";position:absolute;border-radius:50%;inset:18px;border:1px solid rgba(105,223,247,.24)}.sword-ring:after{inset:46px;background:#43d8f4;border:8px solid rgba(67,216,244,.12);box-shadow:0 0 35px rgba(67,216,244,.45)}.blade{position:absolute;left:68px;top:-2px;width:6px;height:34px;border-radius:6px 6px 2px 2px;background:linear-gradient(#f6fbff 0 66%,#f5ae39 67% 76%,#8dceec 77%);transform-origin:3px 73px;transform:rotate(calc(var(--i)*51.428deg))}
@@ -30,50 +29,12 @@
 <div class="sword-ring" aria-hidden="true"><span class="blade" style="--i:0"></span><span class="blade" style="--i:1"></span><span class="blade" style="--i:2"></span><span class="blade" style="--i:3"></span><span class="blade" style="--i:4"></span><span class="blade" style="--i:5"></span><span class="blade" style="--i:6"></span></div>
 <div class="load-label" id="load-label">正在并行下载剑阵引擎</div><div class="load-percent" id="load-percent">0%</div><progress id="status-progress"></progress><div class="load-hint" id="load-hint">首次加载约 10 MB，第二次打开会更快</div><div id="status-notice"></div><div class="loader-foot">一百零五秒 · 一局定锋芒</div>
 </div></div>
-		<div id="rotate-notice"><div class="rotate-card"><div class="rotate-icon"></div><div class="rotate-title">请横屏持握</div><div class="rotate-copy">剑环为横屏战斗设计。<br>横过手机后，左右大按钮会完整展开。</div><button class="rotate-action" id="landscape-bypass" type="button">我已横屏，直接进入</button></div></div>
 
-		<script src="index.js?v=20260718-fast"></script>
+		<script src="index.js?v=20260719-stable"></script>
 		<script>
 const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":225364,"index.wasm":39509339},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
-
-function requestLandscape() {
-	if (screen.orientation && screen.orientation.lock) {
-		screen.orientation.lock('landscape').catch(() => {});
-}
-}
-let landscapeBypass = false;
-function isActuallyLandscape() {
-	const sizeSaysLandscape = window.innerWidth > window.innerHeight;
-	const angle = screen.orientation && typeof screen.orientation.angle === 'number' ? Math.abs(screen.orientation.angle) : Math.abs(window.orientation || 0);
-	return sizeSaysLandscape || angle === 90 || angle === 270;
-}
-function updateOrientationGate() {
-	const touchDevice = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
-	document.body.classList.toggle('needs-rotation', touchDevice && !landscapeBypass && !isActuallyLandscape());
-}
-window.requestSwordRingMotion = async function () {
-	try {
-		if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-			await DeviceMotionEvent.requestPermission();
-		}
-		if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-			await DeviceOrientationEvent.requestPermission();
-		}
-		window.swordRingMotionReady = true;
-	} catch (_) {
-		window.swordRingMotionReady = false;
-	}
-};
-document.getElementById('landscape-bypass').addEventListener('click', function () {
-	landscapeBypass = true;
-	document.body.classList.remove('needs-rotation');
-	requestLandscape();
-});
-window.addEventListener('resize', updateOrientationGate);
-window.addEventListener('orientationchange', function () { setTimeout(updateOrientationGate, 120); });
-updateOrientationGate();
 
 (function () {
 	const statusOverlay = document.getElementById('status');
@@ -187,7 +148,6 @@ updateOrientationGate();
 				}
 			},
 		}).then(() => {
-			window.requestSwordRingMotion();
 			setStatusMode('hidden');
 		}, displayFailureNotice);
 	}
