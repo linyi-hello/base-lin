@@ -666,15 +666,12 @@ const Engine = (function () {
 	Engine.load = function (basePath, size) {
 		if (loadPromise == null) {
 			loadPath = basePath;
-			if (typeof DecompressionStream === 'undefined') {
-				loadPromise = Promise.reject(new Error('This browser is too old to load the compressed game engine.'));
-			} else {
-				const engineParts = [2000000, 2000000, 2000000, 2000000, 2000000, 150665];
-				loadPromise = Promise.all(engineParts.map(function (partSize, index) {
+			const engineParts = [2000000, 2000000, 2000000, 2000000, 2000000, 150665];
+			loadPromise = Promise.all(engineParts.map(function (partSize, index) {
 					const suffix = String(index).padStart(2, '0');
 					return preloader.loadPromise(`engine-parts/${loadPath}.wasm.bin.part-${suffix}`, partSize, true)
 						.then(function (response) { return response.arrayBuffer(); });
-				})).then(function (parts) {
+			})).then(function (parts) {
 					const compressedSize = parts.reduce(function (total, part) { return total + part.byteLength; }, 0);
 					const compressedBytes = new Uint8Array(compressedSize);
 					let offset = 0;
@@ -682,11 +679,16 @@ const Engine = (function () {
 						compressedBytes.set(new Uint8Array(part), offset);
 						offset += part.byteLength;
 					});
-					const compressedStream = new Response(compressedBytes).body;
-					const decompressed = compressedStream.pipeThrough(new DecompressionStream('gzip'));
-					return new Response(decompressed, { headers: { 'content-type': 'application/wasm' } });
-				});
-			}
+					if (typeof DecompressionStream !== 'undefined') {
+						const compressedStream = new Response(compressedBytes).body;
+						const decompressed = compressedStream.pipeThrough(new DecompressionStream('gzip'));
+						return new Response(decompressed, { headers: { 'content-type': 'application/wasm' } });
+					}
+					if (typeof fflate !== 'undefined' && typeof fflate.gunzipSync === 'function') {
+						return new Response(fflate.gunzipSync(compressedBytes), { headers: { 'content-type': 'application/wasm' } });
+					}
+					throw new Error('当前浏览器无法解压游戏引擎，请使用系统浏览器打开。');
+			});
 			requestAnimationFrame(preloader.animateProgress);
 		}
 		return loadPromise;
